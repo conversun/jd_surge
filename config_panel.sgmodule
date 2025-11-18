@@ -14,11 +14,11 @@ jd_config_test = script-name=config_helper_test, title="测试配置", content="
 
 [Script]
 # 显示配置
-config_helper_show = type=generic, script-path=config_helper.js, argument=show
+config_helper_show = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=show
 
 # 配置向导
-config_helper_wizard = type=generic, script-path=config_helper.js, argument=wizard
+config_helper_wizard = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=wizard
 
 # 测试配置
-config_helper_test = type=generic, script-path=config_helper.js, argument=test
+config_helper_test = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=test
 
