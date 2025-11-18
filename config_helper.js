@@ -29,6 +29,91 @@ ${(qlUrl === '未配置' || clientId === '未配置' || clientSecret === '未配
 }
 
 /**
+ * 智能配置检查（合并显示配置、配置向导、测试配置）
+ */
+async function smartConfigCheck() {
+    const qlUrl = $persistentStore.read('ql_url');
+    const clientId = $persistentStore.read('ql_client_id');
+    const clientSecret = $persistentStore.read('ql_client_secret');
+    const updateInterval = $persistentStore.read('ql_update_interval') || '1800';
+    
+    // 情况1：配置不完整，显示配置向导
+    if (!qlUrl || !clientId || !clientSecret) {
+        const instructions = `⚠️ 配置不完整，请先配置
+
+📋 配置方法（URL Scheme）：
+
+1️⃣ 设置青龙地址：
+surge:///write-persistent-store?key=ql_url&value=https://your-domain.com
+
+2️⃣ 设置 Client ID：
+surge:///write-persistent-store?key=ql_client_id&value=YOUR_CLIENT_ID
+
+3️⃣ 设置 Client Secret：
+surge:///write-persistent-store?key=ql_client_secret&value=YOUR_SECRET
+
+复制以上链接到 Safari 打开（替换为你的信息）`;
+        
+        $.notify('JD Cookie Sync', '配置向导', instructions);
+        return;
+    }
+    
+    // 情况2：配置完整，执行测试
+    $.notify('JD Cookie Sync', '正在测试配置', '请稍候...');
+    
+    const url = `${qlUrl}/open/auth/token?client_id=${clientId}&client_secret=${clientSecret}`;
+    
+    try {
+        const response = await $.http.get({
+            url: url,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const body = JSON.parse(response.body);
+        
+        if (body.code === 200 && body.data && body.data.token) {
+            // 测试成功，显示配置信息
+            const message = `✅ 连接测试成功
+
+📍 青龙地址: ${qlUrl}
+🔑 Client ID: ${maskString(clientId)}
+🔐 Client Secret: ${maskString(clientSecret)}
+⏰ 更新间隔: ${updateInterval} 秒
+
+一切正常，可以正常使用！`;
+            
+            $.notify('JD Cookie Sync', '配置状态', message);
+        } else {
+            // Token获取失败
+            const message = `❌ 连接失败
+
+📍 青龙地址: ${qlUrl}
+🔑 Client ID: ${maskString(clientId)}
+🔐 Client Secret: ${maskString(clientSecret)}
+
+错误: ${body.message || '未知错误'}
+
+请检查 Client ID 和 Secret 是否正确`;
+            
+            $.notify('JD Cookie Sync', '配置错误', message);
+        }
+    } catch (error) {
+        // 网络错误
+        const message = `❌ 连接失败
+
+📍 青龙地址: ${qlUrl}
+
+网络错误: ${error.message || error}
+
+请检查青龙面板地址是否正确且可访问`;
+        
+        $.notify('JD Cookie Sync', '配置错误', message);
+    }
+}
+
+/**
  * 掩码显示敏感信息
  */
 function maskString(str) {
@@ -121,27 +206,72 @@ function clearConfig() {
     $.notify('JD Cookie Sync', '✅ 配置已清除', '所有配置数据已删除，请重新配置');
 }
 
+/**
+ * 清除 Cookie 缓存
+ */
+function clearCookieCache() {
+    let clearedCount = 0;
+    
+    // 获取所有持久化存储的键
+    // 由于 Surge 不支持列出所有键，我们需要尝试常见的键名模式
+    // 这里我们清除已知的缓存键
+    const testKeys = [];
+    
+    // 尝试清除可能存在的缓存（最多支持10个账号）
+    for (let i = 1; i <= 10; i++) {
+        const keys = [
+            `jd_cookie_cache_jd_${i}`,
+            `jd_cookie_last_update_jd_${i}`
+        ];
+        
+        keys.forEach(key => {
+            const value = $persistentStore.read(key);
+            if (value) {
+                $persistentStore.write('', key);
+                clearedCount++;
+            }
+        });
+    }
+    
+    // 清除通用的缓存键（不带索引的）
+    const commonKeys = [
+        'jd_cookie_cache_',
+        'jd_cookie_last_update_'
+    ];
+    
+    // 由于无法枚举所有键，我们提供一个通配符清除的说明
+    const message = clearedCount > 0 
+        ? `已清除 ${clearedCount} 个缓存项\n\n下次访问京东时将强制重新同步 Cookie` 
+        : `未找到缓存数据\n\n如果仍有缓存问题，请尝试：\n1. 重启 Surge\n2. 或手动删除以 jd_cookie_cache_ 和 jd_cookie_last_update_ 开头的持久化数据`;
+    
+    $.notify('JD Cookie Sync', '✅ 缓存已清除', message);
+}
+
+
 // ============= 主菜单 =============
 
 (async () => {
     // 根据 URL 参数决定执行的操作
-    const action = $argument || 'show';
+    const action = $argument || 'smart-check';
     
     switch (action) {
-        case 'show':
-            showCurrentConfig();
-            break;
-        case 'wizard':
-            configWizard();
-            break;
-        case 'test':
-            await testConfig();
+        case 'smart-check':
+            await smartConfigCheck();
             break;
         case 'clear':
             clearConfig();
             break;
+        case 'clear-cache':
+            clearCookieCache();
+            break;
+        // 保留旧的操作以兼容
+        case 'show':
+        case 'wizard':
+        case 'test':
+            await smartConfigCheck();
+            break;
         default:
-            $.notify('JD Cookie Sync', '未知操作', `不支持的操作: ${action}\n\n支持的操作: show, wizard, test, clear`);
+            $.notify('JD Cookie Sync', '未知操作', `不支持的操作: ${action}\n\n支持的操作: smart-check, clear, clear-cache`);
     }
     
     $done({});

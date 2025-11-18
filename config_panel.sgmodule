@@ -3,22 +3,16 @@
 #!system=ios
 
 [Panel]
-# 配置面板 - 显示当前配置状态
-jd_config_status = script-name=config_helper_show, title="JD Cookie Sync", content="点击查看配置", update-interval=3600
+# 智能配置检查 - 根据配置状态自动显示配置向导或测试结果
+jd_smart_check = script-name=config_helper_smart_check, title="JD Cookie Sync", content="点击检查配置", update-interval=3600
 
-# 配置向导
-jd_config_wizard = script-name=config_helper_wizard, title="配置向导", content="点击查看配置步骤"
-
-# 测试配置
-jd_config_test = script-name=config_helper_test, title="测试配置", content="点击测试青龙连接"
+# 清除 Cookie 缓存
+jd_clear_cache = script-name=config_helper_clear_cache, title="清除缓存", content="清除 Cookie 缓存"
 
 [Script]
-# 显示配置
-config_helper_show = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=show
+# 智能配置检查
+config_helper_smart_check = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=smart-check
 
-# 配置向导
-config_helper_wizard = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=wizard
-
-# 测试配置
-config_helper_test = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=test
+# 清除 Cookie 缓存
+config_helper_clear_cache = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=clear-cache
 
