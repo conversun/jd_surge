@@ -1,0 +1,24 @@
+#!name=JD Cookie Sync - Config Panel
+#!desc=Configuration panel for JD Cookie Sync (Optional)
+#!system=ios
+
+[Panel]
+# 配置面板 - 显示当前配置状态
+jd_config_status = script-name=config_helper_show, title="JD Cookie Sync", content="点击查看配置", update-interval=3600
+
+# 配置向导
+jd_config_wizard = script-name=config_helper_wizard, title="配置向导", content="点击查看配置步骤"
+
+# 测试配置
+jd_config_test = script-name=config_helper_test, title="测试配置", content="点击测试青龙连接"
+
+[Script]
+# 显示配置
+config_helper_show = type=generic, script-path=config_helper.js, argument=show
+
+# 配置向导
+config_helper_wizard = type=generic, script-path=config_helper.js, argument=wizard
+
+# 测试配置
+config_helper_test = type=generic, script-path=config_helper.js, argument=test
+

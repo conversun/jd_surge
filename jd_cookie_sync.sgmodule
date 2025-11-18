@@ -1,0 +1,11 @@
+#!name=JD Cookie Sync to Qinglong
+#!desc=Auto sync JD cookies to Qinglong panel when using JD app
+#!system=ios
+
+[Script]
+# 拦截京东 API 请求，提取 Cookie 并同步到青龙
+jd_cookie_sync = type=http-request,pattern=^https?:\/\/api\.m\.jd\.com\/client\.action.*,requires-body=0,max-size=0,script-path=jd_cookie_sync.js,timeout=10
+
+[MITM]
+hostname = %APPEND% api.m.jd.com
+
