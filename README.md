@@ -9,16 +9,14 @@
 在 Surge 中添加 Module：
 
 ```
-https://raw.githubusercontent.com/YOUR_USERNAME/jd_surge/main/jd_cookie_sync.sgmodule
+https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.sgmodule
 ```
 
 或在 Safari 中打开一键安装：
 
 ```
-surge:///install-module?url=https://raw.githubusercontent.com/YOUR_USERNAME/jd_surge/main/jd_cookie_sync.sgmodule
+surge:///install-module?url=https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.sgmodule
 ```
-
-> 💡 将 `YOUR_USERNAME` 替换为你的 GitHub 用户名
 
 📖 **详细文档**：
 - [5 分钟快速开始](QUICK_START.md)
@@ -67,16 +65,14 @@ surge:///install-module?url=https://raw.githubusercontent.com/YOUR_USERNAME/jd_s
    - 点击右上角 **安装新模块**
    - 输入 Module URL：
    ```
-   https://raw.githubusercontent.com/YOUR_USERNAME/jd_surge/main/jd_cookie_sync.sgmodule
+   https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.sgmodule
    ```
    - 点击 **确定**
 
 2. 或在 Safari 中打开一键安装链接：
    ```
-   surge:///install-module?url=https://raw.githubusercontent.com/YOUR_USERNAME/jd_surge/main/jd_cookie_sync.sgmodule
+   surge:///install-module?url=https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.sgmodule
    ```
-
-> 💡 将 `YOUR_USERNAME` 替换为实际的 GitHub 用户名
 
 **优势**：
 - ✅ 一次配置，长期使用
