@@ -44,14 +44,6 @@ https://raw.githubusercontent.com/conversun/jd_surge/main/config_panel.sgmodule
 2. 选择 **"脚本"** → **"编辑器"**
 3. 在编辑器中输入以下代码并执行：
 
-```javascript
-$persistentStore.write('', 'ql_url');
-$persistentStore.write('', 'ql_client_id');
-$persistentStore.write('', 'ql_client_secret');
-
-$done()
-```
-
 **参数说明：**
 
 - `ql_url`: 青龙面板地址（如：`http://192.168.1.100:5700` 或 `https://ql.example.com`）
