@@ -180,39 +180,52 @@ async function getEnvList(config, token) {
 }
 
 /**
- * 更新青龙环境变量
+ * 更新青龙环境变量（通过 PUT 请求）
+ * 由于 Surge 不支持 PUT，改用先删除再添加的方式
  */
 async function updateEnv(config, token, envId, name, value, remarks) {
+    // 方法1：先删除再添加
+    $.log(`🔄 更新环境变量: ${name} (ID: ${envId})`);
+    
+    // 删除旧的环境变量
+    const deleteResult = await deleteEnv(config, token, envId);
+    if (!deleteResult.success) {
+        $.log(`⚠️ 删除旧环境变量失败，尝试直接添加`);
+    }
+    
+    // 添加新的环境变量
+    const addResult = await addEnv(config, token, name, value, remarks);
+    return addResult;
+}
+
+/**
+ * 删除青龙环境变量
+ */
+async function deleteEnv(config, token, envId) {
     const url = `${config.qlUrl}/open/envs`;
     
-    const data = {
-        id: envId,
-        name: name,
-        value: value,
-        remarks: remarks || `Updated by Surge at ${new Date().toLocaleString()}`
-    };
-    
     try {
-        const response = await $.http.put({
+        const response = await $.http.post({
             url: url,
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-HTTP-Method-Override': 'DELETE'
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify([envId])
         });
         
         const body = JSON.parse(response.body);
         
         if (body.code === 200) {
-            $.log(`✅ 更新环境变量成功: ${name}`);
+            $.log(`✅ 删除环境变量成功`);
             return { success: true };
         } else {
-            $.log(`❌ 更新环境变量失败: ${body.message || 'Unknown error'}`);
-            return { success: false, message: body.message || 'Failed to update env' };
+            $.log(`⚠️ 删除环境变量失败: ${body.message || 'Unknown error'}`);
+            return { success: false, message: body.message || 'Failed to delete env' };
         }
     } catch (error) {
-        $.log(`❌ 更新环境变量异常: ${error.message || error}`);
+        $.log(`⚠️ 删除环境变量异常: ${error.message || error}`);
         return { success: false, message: error.message || String(error) };
     }
 }
@@ -396,20 +409,6 @@ function Env(name) {
         post: function(options) {
             return new Promise((resolve, reject) => {
                 $httpClient.post(options, (error, response, body) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        response.body = body;
-                        resolve(response);
-                    }
-                });
-            });
-        },
-        put: function(options) {
-            return new Promise((resolve, reject) => {
-                const method = 'PUT';
-                options.method = method;
-                $httpClient.request(options, (error, response, body) => {
                     if (error) {
                         reject(error);
                     } else {
