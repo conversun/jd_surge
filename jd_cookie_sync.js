@@ -312,9 +312,9 @@ async function syncToQinglong(cookie, ptPin) {
     
     const envList = envListResult.data;
     
-    // 查找是否已存在该账号的 Cookie
-    const existingEnv = envList.find(env => {
-        if (env.name.startsWith('JD_COOKIE') && env.value) {
+    // 查找是否已存在该账号的 Cookie（可能有多个重复的）
+    const existingEnvs = envList.filter(env => {
+        if (env.name === 'JD_COOKIE' && env.value) {
             const match = env.value.match(/pt_pin=([^;]+)/);
             if (match) {
                 const envPtPin = decodeURIComponent(match[1]);
@@ -325,25 +325,26 @@ async function syncToQinglong(cookie, ptPin) {
     });
     
     let result;
-    if (existingEnv) {
-        // 更新现有环境变量
-        $.log(`📝 找到现有账号 ${ptPin}，更新环境变量 ${existingEnv.name}`);
-        result = await updateEnv(config, token, existingEnv.id, existingEnv.name, cookie, existingEnv.remarks);
-    } else {
-        // 新增环境变量，查找可用的变量名
-        let envName = 'JD_COOKIE';
-        const usedNames = envList.map(env => env.name);
+    if (existingEnvs.length > 0) {
+        // 找到重复的账号，删除所有旧的
+        $.log(`📝 找到 ${existingEnvs.length} 个重复账号 ${ptPin}，删除旧的环境变量`);
         
-        if (usedNames.includes('JD_COOKIE')) {
-            let index = 2;
-            while (usedNames.includes(`JD_COOKIE_${index}`)) {
-                index++;
+        for (const env of existingEnvs) {
+            const deleteResult = await deleteEnv(config, token, env.id);
+            if (deleteResult.success) {
+                $.log(`✅ 已删除旧的环境变量 (ID: ${env.id})`);
+            } else {
+                $.log(`⚠️ 删除旧的环境变量失败 (ID: ${env.id})`);
             }
-            envName = `JD_COOKIE_${index}`;
         }
         
-        $.log(`➕ 新增账号 ${ptPin}，创建环境变量 ${envName}`);
-        result = await addEnv(config, token, envName, cookie, `Account: ${ptPin}`);
+        // 添加新的环境变量
+        $.log(`➕ 添加新的环境变量 JD_COOKIE`);
+        result = await addEnv(config, token, 'JD_COOKIE', cookie, `Account: ${ptPin}`);
+    } else {
+        // 新增环境变量，统一使用 JD_COOKIE
+        $.log(`➕ 新增账号 ${ptPin}，创建环境变量 JD_COOKIE`);
+        result = await addEnv(config, token, 'JD_COOKIE', cookie, `Account: ${ptPin}`);
     }
     
     if (result.success) {
