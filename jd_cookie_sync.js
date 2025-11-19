@@ -333,22 +333,32 @@ async function syncToQinglong(cookie, ptPin) {
     
     let result;
     if (existingEnvs.length > 0) {
-        // 找到重复的账号，删除所有旧的
-        $.log(`📝 找到 ${existingEnvs.length} 个重复账号 ${ptPin}，删除旧的环境变量`);
+        // 找到重复的账号，检查是否需要更新
+        $.log(`📝 找到 ${existingEnvs.length} 个重复账号 ${ptPin}`);
         
-        for (const env of existingEnvs) {
-            $.log(`🔍 环境变量详情: ID=${env.id}, _id=${env._id}, name=${env.name}`);
-            const deleteResult = await deleteEnv(config, token, env._id || env.id);
-            if (deleteResult.success) {
-                $.log(`✅ 已删除旧的环境变量 (ID: ${env._id || env.id})`);
-            } else {
-                $.log(`⚠️ 删除旧的环境变量失败 (ID: ${env._id || env.id})`);
+        // 检查第一个环境变量的 value 是否相同
+        const firstEnv = existingEnvs[0];
+        if (firstEnv.value === cookie) {
+            $.log(`✅ Cookie 值未变化，无需更新`);
+            result = { success: true };
+        } else {
+            $.log(`🔄 Cookie 值已变化，需要更新`);
+            
+            // 删除所有旧的
+            for (const env of existingEnvs) {
+                $.log(`🔍 删除环境变量: ID=${env._id || env.id}`);
+                const deleteResult = await deleteEnv(config, token, env._id || env.id);
+                if (deleteResult.success) {
+                    $.log(`✅ 已删除旧的环境变量`);
+                } else {
+                    $.log(`⚠️ 删除旧的环境变量失败`);
+                }
             }
+            
+            // 添加新的环境变量
+            $.log(`➕ 添加新的环境变量 JD_COOKIE`);
+            result = await addEnv(config, token, 'JD_COOKIE', cookie, `Account: ${ptPin}`);
         }
-        
-        // 添加新的环境变量
-        $.log(`➕ 添加新的环境变量 JD_COOKIE`);
-        result = await addEnv(config, token, 'JD_COOKIE', cookie, `Account: ${ptPin}`);
     } else {
         // 新增环境变量，统一使用 JD_COOKIE
         $.log(`➕ 新增账号 ${ptPin}，创建环境变量 JD_COOKIE`);
