@@ -212,6 +212,9 @@ async function deleteEnv(config, token, envId) {
     const url = `${config.qlUrl}/open/envs`;
     
     try {
+        const requestBody = [String(envId)];
+        $.log(`🔍 删除请求: ${JSON.stringify(requestBody)}`);
+        
         const response = await $.http.post({
             url: url,
             headers: {
@@ -219,10 +222,11 @@ async function deleteEnv(config, token, envId) {
                 'Content-Type': 'application/json',
                 'X-HTTP-Method-Override': 'DELETE'
             },
-            body: JSON.stringify([envId])
+            body: JSON.stringify(requestBody)
         });
         
         const body = JSON.parse(response.body);
+        $.log(`🔍 删除响应: ${JSON.stringify(body)}`);
         
         if (body.code === 200) {
             $.log(`✅ 删除环境变量成功`);
@@ -250,6 +254,8 @@ async function addEnv(config, token, name, value, remarks) {
     }];
     
     try {
+        $.log(`🔍 新增请求: ${JSON.stringify(data)}`);
+        
         const response = await $.http.post({
             url: url,
             headers: {
@@ -260,6 +266,7 @@ async function addEnv(config, token, name, value, remarks) {
         });
         
         const body = JSON.parse(response.body);
+        $.log(`🔍 新增响应: ${JSON.stringify(body)}`);
         
         if (body.code === 200) {
             $.log(`✅ 新增环境变量成功: ${name}`);
@@ -330,11 +337,12 @@ async function syncToQinglong(cookie, ptPin) {
         $.log(`📝 找到 ${existingEnvs.length} 个重复账号 ${ptPin}，删除旧的环境变量`);
         
         for (const env of existingEnvs) {
-            const deleteResult = await deleteEnv(config, token, env.id);
+            $.log(`🔍 环境变量详情: ID=${env.id}, _id=${env._id}, name=${env.name}`);
+            const deleteResult = await deleteEnv(config, token, env._id || env.id);
             if (deleteResult.success) {
-                $.log(`✅ 已删除旧的环境变量 (ID: ${env.id})`);
+                $.log(`✅ 已删除旧的环境变量 (ID: ${env._id || env.id})`);
             } else {
-                $.log(`⚠️ 删除旧的环境变量失败 (ID: ${env.id})`);
+                $.log(`⚠️ 删除旧的环境变量失败 (ID: ${env._id || env.id})`);
             }
         }
         
