@@ -90,6 +90,13 @@ function extractCookie(headers) {
  * 检查是否需要更新（基于缓存和时间间隔）
  */
 function shouldUpdate(ptPin, config) {
+    // 检查是否设置了绕过间隔检查的标志（清除缓存后设置）
+    const bypassCheck = $persistentStore.read('jd_bypass_interval_check');
+    if (bypassCheck === 'true') {
+        $.log(`🔄 检测到缓存清除标志，绕过时间间隔检查`);
+        return { should: true, reason: 'bypass' };
+    }
+    
     const cacheKey = `jd_cookie_cache_${ptPin}`;
     const lastUpdateKey = `jd_cookie_last_update_${ptPin}`;
     
@@ -342,6 +349,13 @@ async function syncToQinglong(cookie, ptPin) {
     if (result.success) {
         // 更新缓存
         updateCache(ptPin, cookie);
+        
+        // 清除绕过标志（如果存在）
+        const bypassCheck = $persistentStore.read('jd_bypass_interval_check');
+        if (bypassCheck === 'true') {
+            $persistentStore.write('false', 'jd_bypass_interval_check');
+            $.log(`✅ 已清除缓存绕过标志，恢复正常时间间隔检查`);
+        }
         
         $.notify('JD Cookie Sync', '✅ 同步成功', `账号: ${ptPin}\n已同步到青龙面板`);
     } else {

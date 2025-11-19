@@ -208,41 +208,13 @@ function clearConfig() {
 
 /**
  * 清除 Cookie 缓存
+ * 由于 Surge 无法枚举所有存储键，这里使用全局标志来绕过时间检查
  */
 function clearCookieCache() {
-    let clearedCount = 0;
+    // 设置全局标志，让下次同步时绕过时间间隔检查
+    $persistentStore.write('true', 'jd_bypass_interval_check');
     
-    // 获取所有持久化存储的键
-    // 由于 Surge 不支持列出所有键，我们需要尝试常见的键名模式
-    // 这里我们清除已知的缓存键
-    const testKeys = [];
-    
-    // 尝试清除可能存在的缓存（最多支持10个账号）
-    for (let i = 1; i <= 10; i++) {
-        const keys = [
-            `jd_cookie_cache_jd_${i}`,
-            `jd_cookie_last_update_jd_${i}`
-        ];
-        
-        keys.forEach(key => {
-            const value = $persistentStore.read(key);
-            if (value) {
-                $persistentStore.write('', key);
-                clearedCount++;
-            }
-        });
-    }
-    
-    // 清除通用的缓存键（不带索引的）
-    const commonKeys = [
-        'jd_cookie_cache_',
-        'jd_cookie_last_update_'
-    ];
-    
-    // 由于无法枚举所有键，我们提供一个通配符清除的说明
-    const message = clearedCount > 0 
-        ? `已清除 ${clearedCount} 个缓存项\n\n下次访问京东时将强制重新同步 Cookie` 
-        : `未找到缓存数据\n\n如果仍有缓存问题，请尝试：\n1. 重启 Surge\n2. 或手动删除以 jd_cookie_cache_ 和 jd_cookie_last_update_ 开头的持久化数据`;
+    const message = `✅ 缓存已重置\n\n现在请：\n1. 访问京东 App 或网页\n2. Cookie 将立即重新抓取并同步\n3. 无需等待时间间隔`;
     
     $.notify('JD Cookie Sync', '✅ 缓存已清除', message);
 }
