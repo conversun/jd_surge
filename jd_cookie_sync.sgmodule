@@ -5,7 +5,8 @@
 [Script]
 # 拦截京东 API 请求，提取 Cookie 并同步到青龙
 # 使用特定的 functionId 减少触发次数
-jd_cookie_sync = type=http-request,pattern=^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusiness|basicConfig),requires-body=0,max-size=0,script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.js,timeout=10
+#jd_cookie_sync = type=http-request,pattern=^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusiness|basicConfig),requires-body=0,max-size=0,script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.js,timeout=10
+jd_cookie_sync = type=http-request,pattern=^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusiness|basicConfig),requires-body=0,max-size=0,script-path=https://raw.githubusercontent.com/W-Webber/jd_surge/refs/heads/feature-qx/jd_cookie_sync.js, timeout=10
 
 [MITM]
 hostname = %APPEND% api.m.jd.com

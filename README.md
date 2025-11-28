@@ -53,9 +53,9 @@ https://raw.githubusercontent.com/conversun/jd_surge/main/config_panel.sgmodule
 **示例：**
 
 ```javascript
-$persistentStore.write('http://192.168.1.100:5700', 'ql_url');
-$persistentStore.write('abc123', 'ql_client_id');
-$persistentStore.write('xyz789', 'ql_client_secret');
+$prefs.setValueForKey('http://192.168.1.100:5700', 'ql_url');
+$prefs.setValueForKey('abc123', 'ql_client_id');
+$prefs.setValueForKey('xyz789', 'ql_client_secret');
 
 $done()
 ```
@@ -88,7 +88,7 @@ $done()
 
 ```javascript
 // 设置为 10 分钟（600 秒）
-$persistentStore.write('600', 'ql_update_interval');
+$prefs.setValueForKey('600', 'ql_update_interval');
 
 $done()
 ```
@@ -98,10 +98,10 @@ $done()
 如需清除所有配置：
 
 ```javascript
-$persistentStore.write('', 'ql_url');
-$persistentStore.write('', 'ql_client_id');
-$persistentStore.write('', 'ql_client_secret');
-$persistentStore.write('', 'ql_update_interval');
+$prefs.setValueForKey('', 'ql_url');
+$prefs.setValueForKey('', 'ql_client_id');
+$prefs.setValueForKey('', 'ql_client_secret');
+$prefs.setValueForKey('', 'ql_update_interval');
 
 $done()
 ```
