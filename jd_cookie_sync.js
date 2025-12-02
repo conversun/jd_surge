@@ -336,7 +336,7 @@ async function syncToQinglong(cookie, ptPin) {
         const firstEnv = existingEnvs[0];
         if (firstEnv.value === cookie) {
             $.log(`✅ Cookie 值未变化，无需更新`);
-            result = { success: true };
+            result = { success: true, noChange: true };
         } else {
             $.log(`🔄 Cookie 值已变化，需要更新`);
 
@@ -379,8 +379,8 @@ async function syncToQinglong(cookie, ptPin) {
             $.log(`✅ 已清除缓存绕过标志，恢复正常时间间隔检查`);
         }
 
-        // 如果是重复值，不显示通知（静默处理）
-        if (!result.isDuplicate) {
+        // 如果是重复值或 Cookie 未变化，不显示通知（静默处理）
+        if (!result.isDuplicate && !result.noChange) {
             $.notify('JD Cookie Sync', '✅ 同步成功', `账号: ${ptPin}\n已同步到青龙面板`);
         }
     } else {
