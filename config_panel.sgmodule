@@ -4,7 +4,7 @@
 
 [Panel]
 # 智能配置检查 - 根据配置状态自动显示配置向导或测试结果
-jd_smart_check = script-name=config_helper_smart_check, title="JD Cookie Sync", content="点击检查配置", update-interval=3600
+jd_smart_check = script-name=config_helper_smart_check, title="JD Cookie Sync", content="点击检查配置", update-interval=-1
 
 # 清除 Cookie 缓存
 jd_clear_cache = script-name=config_helper_clear_cache, title="清除缓存", content="清除 Cookie 缓存"

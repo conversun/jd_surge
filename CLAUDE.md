@@ -36,13 +36,13 @@ This is a Surge iOS proxy automation project that automatically captures JingDon
 #### Qinglong API Integration
 - **Auth**: `/open/auth/token` with client credentials
 - **Query**: `/open/envs?searchValue=JD_COOKIE` to find existing cookies
-- **Update**: Delete old env var (POST with `X-HTTP-Method-Override: DELETE`) then add new one
+- **Update**: Delete old env var (using standard DELETE request) then add new one
 - **Add**: POST to `/open/envs` with array of env objects
 
 ### Important Design Decisions
 
 1. **Unified Cookie Naming**: All accounts use `JD_COOKIE` (not `JD_COOKIE_2`, `JD_COOKIE_3`). Script finds duplicates by matching `pt_pin` in values
-2. **Update Strategy**: Due to Surge lacking native PUT support, updates are done via DELETE then ADD
+2. **Update Strategy**: Updates are done via DELETE then ADD to ensure clean state without conflicts
 3. **Bypass Mechanism**: `jd_bypass_interval_check` flag allows immediate sync after cache clear (bypasses time interval)
 4. **Duplicate Handling**: Script detects and removes all duplicate entries for same `pt_pin` before adding updated cookie
 
@@ -113,8 +113,8 @@ Enable detailed logging by checking Surge logs during JD app usage. Look for:
 
 ## Important Constraints
 
-### Surge API Limitations
-- **No PUT requests**: Must use POST with `X-HTTP-Method-Override: DELETE` header
+### Surge API Characteristics
+- **HTTP Methods Supported**: GET, POST, DELETE, PUT, PATCH, HEAD, OPTIONS are all natively supported
 - **No enumeration**: Can't list all persistent store keys, so cache clearing uses bypass flag
 - **Async only for HTTP**: Synchronous operations use callbacks, HTTP operations use Promises
 

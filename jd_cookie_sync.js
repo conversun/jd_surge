@@ -187,25 +187,6 @@ async function getEnvList(config, token) {
 }
 
 /**
- * 更新青龙环境变量（通过 PUT 请求）
- * 由于 Surge 不支持 PUT，改用先删除再添加的方式
- */
-async function updateEnv(config, token, envId, name, value, remarks) {
-    // 方法1：先删除再添加
-    $.log(`🔄 更新环境变量: ${name} (ID: ${envId})`);
-    
-    // 删除旧的环境变量
-    const deleteResult = await deleteEnv(config, token, envId);
-    if (!deleteResult.success) {
-        $.log(`⚠️ 删除旧环境变量失败，尝试直接添加`);
-    }
-    
-    // 添加新的环境变量
-    const addResult = await addEnv(config, token, name, value, remarks);
-    return addResult;
-}
-
-/**
  * 删除青龙环境变量
  */
 async function deleteEnv(config, token, envId) {
@@ -216,12 +197,11 @@ async function deleteEnv(config, token, envId) {
         const requestBody = [Number(envId)];
         $.log(`🔍 删除请求: ${JSON.stringify(requestBody)}`);
 
-        const response = await $.http.post({
+        const response = await $.http.delete({
             url: url,
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'X-HTTP-Method-Override': 'DELETE'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestBody)
         });
@@ -471,9 +451,21 @@ function Env(name) {
                     }
                 });
             });
+        },
+        delete: function(options) {
+            return new Promise((resolve, reject) => {
+                $httpClient.delete(options, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        response.body = body;
+                        resolve(response);
+                    }
+                });
+            });
         }
     };
-    
+
     return this;
 }
 
