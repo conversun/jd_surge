@@ -11,9 +11,6 @@ jd_clear_cache = script-name=config_helper_clear_cache, title="清除缓存", co
 
 [Script]
 # 智能配置检查
-#config_helper_smart_check = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=smart-check
-config_helper_smart_check = type=generic, script-path=https://raw.githubusercontent.com/W-Webber/jd_surge/refs/heads/feature-qx/config_helper.js, argument=smart-check
+config_helper_smart_check = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=smart-check
 # 清除 Cookie 缓存
-#config_helper_clear_cache = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=clear-cache
-
-config_helper_clear_cache = type=generic, script-path=https://raw.githubusercontent.com/W-Webber/jd_surge/refs/heads/feature-qx/config_helper.js, argument=clear-cache
+config_helper_clear_cache = type=generic, script-path=https://raw.githubusercontent.com/conversun/jd_surge/main/config_helper.js, argument=clear-cache

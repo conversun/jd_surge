@@ -52,12 +52,12 @@ https://raw.githubusercontent.com/conversun/jd_surge/main/config_panel.sgmodule
 #可进入 设置 -> HTTP请求，在请求列表中手动执行
 #如需定时执行，可在设置好时间后，将enabled设置为true
 
-0 0 * * * https://raw.githubusercontent.com/W-Webber/Clash/refs/heads/master/list/smart_check.js, tag=smart-check, enabled=false
+0 0 * * * https://raw.githubusercontent.com/conversun/jd_surge/refs/heads/master/Scripts/QuantumultX/smart_check.js, tag=smart-check, enabled=false
 
 #点击后不会立即清理，需开启JD自动替换
-0 0 * * * https://raw.githubusercontent.com/W-Webber/Clash/refs/heads/master/list/clear_cache.js, tag=清理Cookie缓存, enabled=false
+0 0 * * * https://raw.githubusercontent.com/conversun/jd_surge/refs/heads/master/Scripts/QuantumultX/clear_cache.js, tag=清理Cookie缓存, enabled=false
 
-0 0 * * * https://raw.githubusercontent.com/W-Webber/Clash/refs/heads/master/list/clear.js, tag=清理青龙配置参数, enabled=false
+0 0 * * * https://raw.githubusercontent.com/conversun/jd_surge/refs/heads/master/Scripts/QuantumultX/clear.js, tag=清理青龙配置参数, enabled=false
 
 ```
 
