@@ -210,11 +210,12 @@ async function updateEnv(config, token, envId, name, value, remarks) {
  */
 async function deleteEnv(config, token, envId) {
     const url = `${config.qlUrl}/open/envs`;
-    
+
     try {
-        const requestBody = [String(envId)];
+        // 青龙API期望数字类型的ID数组
+        const requestBody = [Number(envId)];
         $.log(`🔍 删除请求: ${JSON.stringify(requestBody)}`);
-        
+
         const response = await $.http.post({
             url: url,
             headers: {
@@ -224,10 +225,10 @@ async function deleteEnv(config, token, envId) {
             },
             body: JSON.stringify(requestBody)
         });
-        
+
         const body = JSON.parse(response.body);
         $.log(`🔍 删除响应: ${JSON.stringify(body)}`);
-        
+
         if (body.code === 200) {
             $.log(`✅ 删除环境变量成功`);
             return { success: true };
@@ -267,11 +268,21 @@ async function addEnv(config, token, name, value, remarks) {
         
         const body = JSON.parse(response.body);
         $.log(`🔍 新增响应: ${JSON.stringify(body)}`);
-        
+
         if (body.code === 200) {
             $.log(`✅ 新增环境变量成功: ${name}`);
             return { success: true };
         } else {
+            // 检查是否是重复值错误（value must be unique）
+            const isDuplicate = body.errors && body.errors.some(err =>
+                err.type === 'unique violation' && err.path === 'value'
+            );
+
+            if (isDuplicate) {
+                $.log(`ℹ️ 环境变量值已存在，无需更新`);
+                return { success: true, isDuplicate: true };
+            }
+
             $.log(`❌ 新增环境变量失败: ${body.message || 'Unknown error'}`);
             return { success: false, message: body.message || 'Failed to add env' };
         }
@@ -343,8 +354,9 @@ async function syncToQinglong(cookie, ptPin) {
             result = { success: true };
         } else {
             $.log(`🔄 Cookie 值已变化，需要更新`);
-            
-            // 删除所有旧的
+
+            // 删除所有旧的环境变量
+            let deleteSuccess = true;
             for (const env of existingEnvs) {
                 $.log(`🔍 删除环境变量: ID=${env._id || env.id}`);
                 const deleteResult = await deleteEnv(config, token, env._id || env.id);
@@ -352,12 +364,18 @@ async function syncToQinglong(cookie, ptPin) {
                     $.log(`✅ 已删除旧的环境变量`);
                 } else {
                     $.log(`⚠️ 删除旧的环境变量失败`);
+                    deleteSuccess = false;
                 }
             }
-            
+
             // 添加新的环境变量
             $.log(`➕ 添加新的环境变量 JD_COOKIE`);
             result = await addEnv(config, token, 'JD_COOKIE', cookie, `Account: ${ptPin}`);
+
+            // 如果删除失败但添加成功（因为检测到重复），也视为成功
+            if (!deleteSuccess && result.success && result.isDuplicate) {
+                $.log(`✅ 虽然删除失败，但环境变量值正确，视为更新成功`);
+            }
         }
     } else {
         // 新增环境变量，统一使用 JD_COOKIE
@@ -368,15 +386,18 @@ async function syncToQinglong(cookie, ptPin) {
     if (result.success) {
         // 更新缓存
         updateCache(ptPin, cookie);
-        
+
         // 清除绕过标志（如果存在）
         const bypassCheck = $persistentStore.read('jd_bypass_interval_check');
         if (bypassCheck === 'true') {
             $persistentStore.write('false', 'jd_bypass_interval_check');
             $.log(`✅ 已清除缓存绕过标志，恢复正常时间间隔检查`);
         }
-        
-        $.notify('JD Cookie Sync', '✅ 同步成功', `账号: ${ptPin}\n已同步到青龙面板`);
+
+        // 如果是重复值，不显示通知（静默处理）
+        if (!result.isDuplicate) {
+            $.notify('JD Cookie Sync', '✅ 同步成功', `账号: ${ptPin}\n已同步到青龙面板`);
+        }
     } else {
         $.notify('JD Cookie Sync', '❌ 同步失败', result.message);
     }
