@@ -76,6 +76,11 @@ function extractCookie(headers) {
         return { valid: false, message: 'Invalid cookie format' };
     }
     
+    // 检查是否为游客cookie
+    if (ptKey.startsWith('fake_') || ptPin.toLowerCase() === 'guest') {
+        return { valid: false, message: 'Guest cookie detected, skipping sync' };
+    }
+    
     const jdCookie = `pt_key=${ptKey};pt_pin=${ptPin};`;
     
     return {
