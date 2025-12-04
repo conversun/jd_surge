@@ -28,12 +28,37 @@
 https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.sgmodule
 ```
 
+在Quantumult X的`[rewrite_remote]`中添加以下模块：
+
+```
+[rewrite_remote]
+
+https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.sgmodule, tag=自动同步京东cookie(qinglong), update-interval=86400, opt-parser=true, enabled=true
+```
+
 #### 安装配置面板（可选）
 
 如需在 Surge 面板中查看配置状态，可安装配置面板模块：
 
 ```
 https://raw.githubusercontent.com/conversun/jd_surge/main/config_panel.sgmodule
+```
+
+如需在 Quantumult X 面板中查看配置状态，可在`[task_local]`中添加：
+
+```
+[task_local]
+
+#可进入 设置 -> HTTP请求，在请求列表中手动执行
+#如需定时执行，可在设置好时间后，将enabled设置为true
+
+0 0 * * * https://raw.githubusercontent.com/conversun/jd_surge/refs/heads/master/Scripts/QuantumultX/smart_check.js, tag=smart-check, enabled=false
+
+#点击后不会立即清理，需开启JD自动替换
+0 0 * * * https://raw.githubusercontent.com/conversun/jd_surge/refs/heads/master/Scripts/QuantumultX/clear_cache.js, tag=清理Cookie缓存, enabled=false
+
+0 0 * * * https://raw.githubusercontent.com/conversun/jd_surge/refs/heads/master/Scripts/QuantumultX/clear.js, tag=清理青龙配置参数, enabled=false
+
 ```
 
 ### 2. 配置青龙面板信息
@@ -44,21 +69,41 @@ https://raw.githubusercontent.com/conversun/jd_surge/main/config_panel.sgmodule
 2. 选择 **"脚本"** → **"编辑器"**
 3. 在编辑器中输入以下代码并执行：
 
-**参数说明：**
-
-- `ql_url`: 青龙面板地址（如：`http://192.168.1.100:5700` 或 `https://ql.example.com`）
-- `ql_client_id`: 青龙应用的 Client ID
-- `ql_client_secret`: 青龙应用的 Client Secret
-
 **示例：**
 
 ```javascript
+// Surge
 $persistentStore.write('http://192.168.1.100:5700', 'ql_url');
 $persistentStore.write('abc123', 'ql_client_id');
 $persistentStore.write('xyz789', 'ql_client_secret');
 
 $done()
 ```
+
+在 Quantumult X 中：
+
+1. 点击底部 **"构造请求"** 按钮或点击右下角 **"风车"** 按钮进入设置页面，打开 **"HTTP请求"**
+2. 点击 **"右下角按钮"** → **"编辑器"**
+3. 在编辑器中输入以下代码并执行：
+
+**示例：**
+
+```javascript
+// Quantumult X
+$prefs.setValueForKey('http://192.168.1.100:5700', 'ql_url');
+$prefs.setValueForKey('abc123', 'ql_client_id');
+$prefs.setValueForKey('xyz789', 'ql_client_secret');
+
+$done()
+```
+
+
+**参数说明：**
+
+- `ql_url`: 青龙面板地址（如：`http://192.168.1.100:5700` 或 `https://ql.example.com`）
+- `ql_client_id`: 青龙应用的 Client ID
+- `ql_client_secret`: 青龙应用的 Client Secret
+
 
 ### 3. 获取 Cookie
 
@@ -87,8 +132,15 @@ $done()
 默认更新间隔为 30 分钟（1800 秒），可自定义：
 
 ```javascript
+// Surge
 // 设置为 10 分钟（600 秒）
 $persistentStore.write('600', 'ql_update_interval');
+
+$done()
+
+// Quantumult X
+// 设置为 10 分钟（600 秒）
+$prefs.setValueForKey('600', 'ql_update_interval');
 
 $done()
 ```
@@ -98,10 +150,19 @@ $done()
 如需清除所有配置：
 
 ```javascript
+// Surge
 $persistentStore.write('', 'ql_url');
 $persistentStore.write('', 'ql_client_id');
 $persistentStore.write('', 'ql_client_secret');
 $persistentStore.write('', 'ql_update_interval');
+
+$done()
+
+// Quantumult X
+$prefs.setValueForKey('', 'ql_url');
+$prefs.setValueForKey('', 'ql_client_id');
+$prefs.setValueForKey('', 'ql_client_secret');
+$prefs.setValueForKey('', 'ql_update_interval');
 
 $done()
 ```
