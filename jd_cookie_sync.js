@@ -311,6 +311,10 @@ async function syncToQinglong(cookie, ptPin) {
         return;
     }
 
+    // 提前更新缓存，防止短时间内多次触发导致重复执行
+    // 如果 API 调用失败，30分钟后会自动重试
+    updateCache(ptPin, cookie);
+
     // 获取 Token
     const tokenResult = await getQinglongToken(config);
     if (!tokenResult.success) {
@@ -343,15 +347,35 @@ async function syncToQinglong(cookie, ptPin) {
 
     let result;
     if (existingEnvs.length > 0) {
-        // 找到重复的账号，检查是否需要更新
-        $.log(`📝 找到 ${existingEnvs.length} 个重复账号 ${ptPin}`);
+        $.log(`📝 找到 ${existingEnvs.length} 个匹配账号 ${ptPin}`);
 
-        // 检查第一个环境变量的 value 是否相同
-        const firstEnv = existingEnvs[0];
-        if (firstEnv.value === cookie) {
-            $.log(`✅ Cookie 值未变化，无需更新`);
+        // 查找是否有值完全匹配的环境变量
+        const exactMatch = existingEnvs.find(env => env.value === cookie);
+
+        if (exactMatch && existingEnvs.length === 1) {
+            // 只有一个且值相同，无需任何操作
+            $.log(`✅ Cookie 值未变化且无重复，跳过更新`);
+            result = { success: true, noChange: true };
+        } else if (exactMatch) {
+            // 有值相同的，但存在多个重复的，需要清理多余的
+            $.log(`🧹 发现 ${existingEnvs.length - 1} 个重复环境变量，清理中...`);
+
+            // 删除除了精确匹配之外的所有重复项
+            for (const env of existingEnvs) {
+                const envId = env._id || env.id;
+                if (envId !== (exactMatch._id || exactMatch.id)) {
+                    $.log(`🔍 删除重复环境变量: ID=${envId}`);
+                    const deleteResult = await deleteEnv(config, token, envId);
+                    if (deleteResult.success) {
+                        $.log(`✅ 已删除重复环境变量`);
+                    } else {
+                        $.log(`⚠️ 删除重复环境变量失败`);
+                    }
+                }
+            }
             result = { success: true, noChange: true };
         } else {
+            // 没有值匹配的，需要删除所有旧的并添加新的
             $.log(`🔄 Cookie 值已变化，需要更新`);
 
             // 删除所有旧的环境变量
@@ -383,9 +407,6 @@ async function syncToQinglong(cookie, ptPin) {
     }
 
     if (result.success) {
-        // 更新缓存
-        updateCache(ptPin, cookie);
-
         // 清除绕过标志（如果存在）
         const bypassCheck = $.getval('jd_bypass_interval_check');
         if (bypassCheck === 'true') {
