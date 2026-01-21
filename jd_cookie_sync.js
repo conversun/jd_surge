@@ -457,12 +457,21 @@ async function httpRequest(options) {
     const _respType = options?._respType || 'body';
     const _timeout = options?._timeout || 15e3;
 
-    const timeoutPromise = new Promise((_, reject) => 
+    // Ensure method is set in options for non-GET requests
+    // This allows $.post() to handle DELETE, PUT, PATCH, etc.
+    if (_method.toLowerCase() !== 'get') {
+        options.method = _method.toUpperCase();
+    }
+
+    const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`请求超时: ${options.url}`)), _timeout)
     );
 
     const requestPromise = new Promise((resolve, reject) => {
-        $[_method.toLowerCase()](options, (error, response, data) => {
+        // Env class only exposes $.get() and $.post()
+        // $.post() handles all non-GET methods via options.method
+        const methodFn = _method.toLowerCase() === 'get' ? 'get' : 'post';
+        $[methodFn](options, (error, response, data) => {
             if (error) {
                 reject(new Error(typeof error === 'string' ? error : JSON.stringify(error)));
                 return;
