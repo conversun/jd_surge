@@ -429,6 +429,14 @@ async function syncToQinglong(cookie, ptPin) {
     try {
         const headers = $request.headers;
 
+        // 检查 User-Agent，只处理京东主App的请求
+        const userAgent = headers['User-Agent'] || headers['user-agent'] || '';
+        if (!userAgent.startsWith('JD4iPhone')) {
+            $.log(`⏭️ 跳过非京东主App请求: ${userAgent.substring(0, 30)}...`);
+            $.done({});
+            return;
+        }
+
         // 提取并验证 Cookie
         const cookieResult = extractCookie(headers);
 
