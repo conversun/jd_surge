@@ -112,10 +112,10 @@ function shouldUpdate(ptPin, currentCookie, config) {
     const keys = getCacheKeys(ptPin);
     const cachedCookie = $.getval(keys.cookie);
     const lastUpdate = parseInt($.getval(keys.lastUpdate) || '0');
+    const bypassFlag = $.getval(CONFIG_KEYS.BYPASS_CHECK);
     const now = Date.now();
 
-    // 检查绕过间隔的标志
-    if ($.getval(CONFIG_KEYS.BYPASS_CHECK) === 'true') {
+    if (bypassFlag === 'true') {
         return { should: true, reason: 'bypass' };
     }
 
@@ -225,7 +225,7 @@ async function getQinglongToken(config) {
             return { success: true, token: body.data.token };
         }
 
-        $.log(`❌ 获取 Token 失败: ${body.message || 'Unknown error'}`);
+        $.log(`❌ 获取 Token 失败 [${body.code}]: ${body.message || 'Unknown error'}`);
         return { success: false, message: body.message || 'Failed to get token' };
     } catch (error) {
         $.log(`❌ 获取 Token 异常: ${error.message || error}`);
@@ -244,7 +244,7 @@ async function getEnvList(config, token) {
             return { success: true, data: body.data };
         }
 
-        $.log(`❌ 查询环境变量失败: ${body.message || 'Unknown error'}`);
+        $.log(`❌ 查询环境变量失败 [${body.code}]: ${body.message || 'Unknown error'}`);
         return { success: false, message: body.message || 'Failed to get env list' };
     } catch (error) {
         $.log(`❌ 查询环境变量异常: ${error.message || error}`);
@@ -266,7 +266,7 @@ async function deleteEnv(config, token, envId) {
             return { success: true };
         }
 
-        $.log(`⚠️ 删除环境变量失败 (ID=${envId}): ${body.message || 'Unknown error'}`);
+        $.log(`⚠️ 删除环境变量失败 [${body.code}] (ID=${envId}): ${body.message || 'Unknown error'}`);
         return { success: false, message: body.message || 'Failed to delete env' };
     } catch (error) {
         $.log(`⚠️ 删除环境变量异常 (ID=${envId}): ${error.message || error}`);
@@ -300,7 +300,7 @@ async function addEnv(config, token, name, value, remarks) {
             return { success: true, isDuplicate: true };
         }
 
-        $.log(`❌ 新增环境变量失败: ${body.message || 'Unknown error'}`);
+        $.log(`❌ 新增环境变量失败 [${body.code}]: ${body.message || 'Unknown error'}`);
         return { success: false, message: body.message || 'Failed to add env' };
     } catch (error) {
         $.log(`❌ 新增环境变量异常: ${error.message || error}`);
@@ -339,11 +339,13 @@ function getEnvId(env) {
  * 删除多个环境变量（排除指定 ID）
  */
 async function deleteEnvsExcept(config, token, envs, excludeId) {
-    for (const env of envs) {
-        const envId = getEnvId(env);
-        if (envId !== excludeId) {
-            await deleteEnv(config, token, envId);
-        }
+    const targets = envs.filter(env => getEnvId(env) !== excludeId);
+    const results = await Promise.all(
+        targets.map(env => deleteEnv(config, token, getEnvId(env)))
+    );
+    const failed = targets.filter((_, i) => !results[i].success);
+    if (failed.length > 0) {
+        $.log(`⚠️ 清理重复失败 (${failed.length}): ID=${failed.map(e => getEnvId(e)).join(',')}`);
     }
 }
 
@@ -351,12 +353,14 @@ async function deleteEnvsExcept(config, token, envs, excludeId) {
  * 删除所有环境变量
  */
 async function deleteAllEnvs(config, token, envs) {
-    let allSuccess = true;
-    for (const env of envs) {
-        const result = await deleteEnv(config, token, getEnvId(env));
-        if (!result.success) allSuccess = false;
+    const results = await Promise.all(
+        envs.map(env => deleteEnv(config, token, getEnvId(env)))
+    );
+    const failed = envs.filter((_, i) => !results[i].success);
+    if (failed.length > 0) {
+        $.log(`⚠️ 删除失败 (${failed.length}/${envs.length}): ID=${failed.map(e => getEnvId(e)).join(',')}`);
     }
-    return allSuccess;
+    return failed.length === 0;
 }
 
 /**
@@ -411,9 +415,6 @@ async function syncToQinglong(cookie, ptPin) {
         return;
     }
 
-    // 提前更新缓存，防止重复触发
-    updateCache(ptPin, cookie);
-
     // 获取 Token
     const tokenResult = await getQinglongToken(config);
     if (!tokenResult.success) {
@@ -440,8 +441,13 @@ async function syncToQinglong(cookie, ptPin) {
     }
 
     if (result.success) {
+        updateCache(ptPin, cookie);
         clearBypassFlag();
-        if (!result.isDuplicate && !result.noChange) {
+        if (result.noChange) {
+            $.log(`⏭️ 无需更新 [${ptPin}]`);
+        } else if (result.isDuplicate) {
+            $.log(`⏭️ 值已存在 [${ptPin}]`);
+        } else {
             $.log(`✅ 同步成功 [${ptPin}]`);
             $.msg('JD Cookie Sync', '✅ 同步成功', `账号: ${ptPin}\n已同步到青龙面板`);
         }
