@@ -28,7 +28,21 @@
 https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.sgmodule
 ```
 
-在Quantumult X的`[rewrite_remote]`中添加以下模块：
+在 Quantumult X 的 `[rewrite_remote]` 中添加以下模块：
+
+> **⚠️ 前提条件**：Quantumult X 需要先配置**资源解析器**才能解析 Surge 的 `.sgmodule` 格式。
+> 
+> 打开 Quantumult X 配置文件，找到 `[general]` 位置，添加以下代码：
+> ```
+> resource_parser_url=https://raw.githubusercontent.com/KOP-XIAO/QuantumultX/master/Scripts/resource-parser.js
+> ```
+> 备用地址：
+> ```
+> resource_parser_url=https://fastly.jsdelivr.net/gh/KOP-XIAO/QuantumultX@master/Scripts/resource-parser.js
+> ```
+> 参考：[QuantumultX 资源解析器说明](https://github.com/kjfx/QuantumultX)
+
+配置好资源解析器后，在 `[rewrite_remote]` 中添加：
 
 ```
 [rewrite_remote]
