@@ -1,0 +1,7 @@
+; JD Cookie Sync to Qinglong
+; 自动抓取京东 Cookie 并同步到青龙面板
+; https://github.com/conversun/jd_surge
+
+hostname = api.m.jd.com
+
+^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(getJDUserInfoUnion|queryJDUserInfo|myHomeV2|home|wareBusiness|basicConfig) url script-request-header https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.js
