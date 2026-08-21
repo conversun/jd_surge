@@ -1,3 +1,5 @@
+
+
 # JD Cookie Sync for Surge
 
 自动抓取京东 APP 的 Cookie 并同步到青龙面板，实现京东 Cookie 的自动化管理。
@@ -9,6 +11,12 @@
 - ⏰ **防重复更新** - 默认 30 分钟更新间隔，避免频繁同步
 - 👥 **多账号支持** - 自动识别并管理多个京东账号
 - 🔐 **安全可靠** - Cookie 本地缓存，敏感信息加密存储
+
+## 📋 前置要求
+
+- iOS 设备已安装 [Surge](https://nssurge.com/)
+- 已部署 [青龙面板](https://github.com/whyour/qinglong)
+- Surge 已配置 MITM 证书
 
 ## 📋 前置要求
 
@@ -190,7 +198,7 @@ $done()
 
 ### 支持多账号吗？
 
-支持。脚本会自动识别不同的京东账号（pt_pin），并分别管理。青龙面板中会创建 `JD_COOKIE`、`JD_COOKIE_2`、`JD_COOKIE_3` 等环境变量。
+支持。脚本会自动识别不同的京东账号（pt_pin），并分别管理。青龙面板中会创建同一个 `JD_COOKIE` 环境变量，通过 Cookie 值中的 `pt_pin` 区分不同账号。
 
 ### 如何查看同步日志？
 
@@ -214,4 +222,3 @@ MIT License
 ---
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request。
-
