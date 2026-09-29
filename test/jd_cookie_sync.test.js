@@ -3,7 +3,7 @@
  *
  * 重点锁定三条来之不易的不变量（见 AGENTS.md）：
  *   1. 先加后删——顺序颠倒会在脚本被杀时导致账号 Cookie 归零
- *   2. 单账号同步锁——京东 App 启动时 6 个 functionId 并发触发
+ *   2. 单账号同步锁——触发正则匹配每个 /client.action 请求，京东 App 启动时会并发
  *   3. 凭证 URL 编码——secret 含 & 或 = 时认证会莫名失败
  */
 
@@ -16,7 +16,10 @@ const {
     methodSequence,
     envRow,
     VALID_COOKIE,
+    APP_OPEN_COOKIE,
     JD_UA,
+    JD_UA_CFNETWORK,
+    JD_UA_H5,
     FULL_CONFIG
 } = require('./helpers/harness');
 
@@ -194,6 +197,54 @@ test('跳过 guest 与 fake_ 游客 Cookie', async () => {
         });
         assert.equal(requests.length, 0, `游客 Cookie 不应同步: ${cookie}`);
     }
+});
+
+test('放行 App 内 H5 的 jdapp; User-Agent（2026-09 新形态）', async () => {
+    const qinglong = createQinglongStub({ envs: oldEnvs() });
+    const { requests } = await runInSurge('sync', {
+        store: config(),
+        headers: { 'User-Agent': JD_UA_H5, Cookie: VALID_COOKIE },
+        qinglong
+    });
+
+    assert.ok(requests.length > 0, 'jdapp; 前缀属于京东主 App 的 H5 容器，不能被当成浏览器过滤掉');
+});
+
+test('新形态 UA JD4iPhone/16.0.0 CFNetwork 也要放行', async () => {
+    const qinglong = createQinglongStub({ envs: oldEnvs() });
+    const { requests } = await runInSurge('sync', {
+        store: config(),
+        headers: { 'User-Agent': JD_UA_CFNETWORK, Cookie: VALID_COOKIE },
+        qinglong
+    });
+
+    assert.ok(requests.length > 0, 'CFNetwork 形态仍是 JD4iPhone 前缀，不应被过滤');
+});
+
+test('默认保留 pt_key 的 app_open 前缀', async () => {
+    // 原值就是京东服务器刚刚接受过的完整凭证，默认不该改动
+    const qinglong = createQinglongStub({ envs: oldEnvs() });
+    const { requests } = await runInSurge('sync', {
+        store: config(),
+        headers: { 'User-Agent': JD_UA, Cookie: APP_OPEN_COOKIE },
+        qinglong
+    });
+
+    const add = requests.find((r) => r.method === 'POST');
+    assert.ok(add.body.includes('pt_key=app_open'), '未配置开关时不得改动抓到的原值');
+});
+
+test('置 jd_strip_app_open=true 时去掉前缀', async () => {
+    const qinglong = createQinglongStub({ envs: oldEnvs() });
+    const { requests } = await runInSurge('sync', {
+        store: config({ jd_strip_app_open: 'true' }),
+        headers: { 'User-Agent': JD_UA, Cookie: APP_OPEN_COOKIE },
+        qinglong
+    });
+
+    const add = requests.find((r) => r.method === 'POST');
+    assert.ok(add.body.includes('pt_key=AAJoAPP'), '应当同步去掉前缀后的经典格式');
+    assert.ok(!add.body.includes('app_open'), '前缀不应残留在同步值里');
 });
 
 test('缺少 Cookie 头时安全退出', async () => {

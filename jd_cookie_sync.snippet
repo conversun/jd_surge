@@ -4,4 +4,8 @@
 
 hostname = api.m.jd.com
 
-^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(getJDUserInfoUnion|queryJDUserInfo|myHomeV2|home|wareBusiness|basicConfig) url script-request-header https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.js
+; 京东 2026-09 起把 functionId 从 URL query 挪进了 POST 请求体，
+; URL 现在只剩 /client.action?（空 query）。所以不能再靠 functionId 白名单匹配，
+; 否则规则命中数永远是 0。改成匹配 client.action 路径本身，
+; 由脚本内部用 User-Agent + Cookie 做二次过滤。
+^https?:\/\/api\.m\.jd\.com\/client\.action url script-request-header https://raw.githubusercontent.com/conversun/jd_surge/main/jd_cookie_sync.js

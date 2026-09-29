@@ -34,6 +34,12 @@ function readSource(key) {
 
 const VALID_COOKIE = 'pt_key=AAJoNEWKEY1234567890;pt_pin=testuser;wskey=x';
 const JD_UA = 'JD4iPhone/167783 (iPhone; iOS 17.0; Scale/3.00)';
+// 2026-09 抓包里的新形态：原生栈改用 CFNetwork UA，App 内 H5 改用 jdapp; 前缀
+const JD_UA_CFNETWORK = 'JD4iPhone/16.0.0 CFNetwork/1492.0.1 Darwin/23.3.0';
+const JD_UA_H5 =
+    'jdapp;iPhone;16.0.0;;;M/5.0;appBuild/170980;jdSupportDarkMode/0;lang/zh_CN;ctype/0;site/CN';
+// 2026-09 起 pt_key 带 app_open 渠道前缀
+const APP_OPEN_COOKIE = 'pt_key=app_openAAJoAPP1234567890;pt_pin=testuser;wskey=x';
 
 const FULL_CONFIG = {
     ql_url: 'http://ql.local:5700',
@@ -281,6 +287,9 @@ module.exports = {
     methodSequence,
     envRow,
     VALID_COOKIE,
+    APP_OPEN_COOKIE,
     JD_UA,
+    JD_UA_CFNETWORK,
+    JD_UA_H5,
     FULL_CONFIG
 };

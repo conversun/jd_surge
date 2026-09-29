@@ -10,13 +10,41 @@ const assert = require('node:assert/strict');
 
 const { readSource, runQxStub, FULL_CONFIG } = require('./helpers/harness');
 
-const TRIGGER_REGEX =
-    'functionId=(getJDUserInfoUnion|queryJDUserInfo|myHomeV2|home|wareBusiness|basicConfig)';
+const TRIGGER_REGEX = '^https?:\\/\\/api\\.m\\.jd\\.com\\/client\\.action';
 
 test('触发正则在 sgmodule 与 snippet 中保持一致', () => {
     // 两个文件各自硬编码一份，改一个忘改另一个 = QX 用户静默失效
     assert.ok(readSource('sgmodule').includes(TRIGGER_REGEX), 'sgmodule 触发正则已漂移');
     assert.ok(readSource('snippet').includes(TRIGGER_REGEX), 'snippet 触发正则已漂移');
+});
+
+test('触发正则不依赖 URL 里的 functionId', () => {
+    // 京东 2026-09 起把 functionId 挪进了 POST 请求体，URL 只剩 /client.action?。
+    // 一旦有人把 functionId 白名单加回来，QX 用户的命中数会再次变成 0 而毫无提示。
+    for (const key of ['sgmodule', 'snippet']) {
+        assert.ok(!readSource(key).includes('functionId='), `${key} 又依赖 URL 里的 functionId 了`);
+    }
+});
+
+test('触发正则能匹配 2026-09 抓包里的真实 URL 形态', () => {
+    const patterns = [
+        readSource('snippet').match(/^(\^https\?:[^ ]+) url script-request-header/m)[1],
+        readSource('sgmodule').match(/pattern=(\^https\?:[^,]+),/)[1]
+    ];
+
+    const realUrls = [
+        'https://api.m.jd.com/client.action?', // functionId 已被挪进 POST 体
+        'https://api.m.jd.com/client.action?functionId=logConfig', // 老形态仍在
+        'https://api.m.jd.com/client.action?functionId=babelGetGuideTips',
+        'https://api.m.jd.com/client.action?functionId=uploadPageView'
+    ];
+
+    for (const [i, raw] of patterns.entries()) {
+        const re = new RegExp(raw);
+        for (const u of realUrls) {
+            assert.ok(re.test(u), `第 ${i + 1} 处正则需要匹配: ${u}`);
+        }
+    }
 });
 
 test('超时预算必须嵌套：内部超时 × 串行请求数 < 模块超时', () => {

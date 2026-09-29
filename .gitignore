@@ -36,6 +36,9 @@ Temporary Items
 config.private.js
 secrets.txt
 
+# Captures contain real pt_key / pt_pin credentials — never commit
+*.har
+
 # Plan file (not needed in git)
 *.plan.md
 

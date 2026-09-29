@@ -145,6 +145,26 @@ $prefs.setValueForKey('600', 'ql_update_interval');
 $done()
 ```
 
+### 去掉 pt_key 的 app_open 前缀（可选）
+
+2026-09 起京东给 `pt_key` 加了 `app_open` 渠道前缀（`pt_key=app_openAAJqskN7...`）。
+
+**默认不做任何处理**——抓到的原值就是京东服务器刚刚接受过的完整凭证，直接同步过去最稳妥。
+
+如果你的签到脚本只认 `AAJ` 开头的经典格式，可以设置开关去掉前缀：
+
+```javascript
+// Surge
+$persistentStore.write('true', 'jd_strip_app_open');
+
+$done()
+
+// Quantumult X
+$prefs.setValueForKey('true', 'jd_strip_app_open');
+
+$done()
+```
+
 ### 清除配置
 
 如需清除所有配置：
@@ -179,10 +199,19 @@ $done()
 
 ### 为什么没有同步？
 
-1. 检查是否正确配置了青龙面板信息
-2. 确认青龙面板地址可以访问
-3. 查看 Surge 日志中是否有错误信息
-4. 确认 Surge 已启用 MITM 并信任证书
+按顺序排查：
+
+1. **规则有没有命中** —— 这是最重要的一步。QX 打开 **设置 → 重写 → 规则**，点开 `自动同步京东cookie(qinglong)`，看命中数。命中数为 0 说明请求根本没进来，跟青龙配置无关。
+2. **改写脚本能不能下载下来** —— 本仓库的脚本通过 `raw.githubusercontent.com` 远程加载。网络不通或该域名不可达时，规则会静默失效且没有任何报错。可以先把 `jd_cookie_sync.js` 另存为本地文件，改写规则改用本地路径验证。
+3. **是否真的抓到了 Cookie 但被节流跳过了** —— 默认 30 分钟内不重复同步，脚本在这种情况下会**直接退出、不打任何日志**。想立即强制同步一次，设置一个绕过标志后重新打开京东 App：
+   ```javascript
+   $prefs.setValueForKey(true, 'jd_bypass_interval_check');  $done()
+   ```
+4. **配置是否写进了正确的存储** —— QX 用的是 `$prefs`，Surge 用的是 `$persistentStore`，两者互不相通。配错地方会导致脚本读不到 `ql_url`。
+5. 确认已启用 MITM 并信任证书，否则 `api.m.jd.com` 的 HTTPS 请求不会被解密拦截。
+6. 查看 Surge/QX 日志中是否有错误信息。
+
+> 💡 如果不想逐条排查，可以把仓库里的 `diag_qx.js` 在 QX「设置 → HTTP 请求 → 编辑器」里直接运行，它会一次性检查脚本能否下载、青龙地址能否连通、当前配置是否完整，并用通知回报结果。
 
 ### Cookie 多久更新一次？
 
@@ -190,7 +219,7 @@ $done()
 
 ### 支持多账号吗？
 
-支持。脚本会自动识别不同的京东账号（pt_pin），并分别管理。青龙面板中会创建 `JD_COOKIE`、`JD_COOKIE_2`、`JD_COOKIE_3` 等环境变量。
+支持。脚本会自动识别不同的京东账号（`pt_pin`），并分别管理。注意青龙面板中所有账号统一写入 `JD_COOKIE`，脚本按 `pt_pin` 区分账号、清理重复行。
 
 ### 如何查看同步日志？
 

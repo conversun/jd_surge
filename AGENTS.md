@@ -7,7 +7,7 @@ Surge / Quantumult X proxy scripts that scrape JD (京东) cookies from intercep
 No bundler, no linter, no CI. `package.json` exists **only** to pin the test command — the shipped scripts have zero dependencies and are deployed by raw GitHub URL, never from `node_modules`.
 
 ```sh
-npm test          # node --test test/*.test.js  (53 tests, ~6s, no deps)
+npm test          # node --test test/*.test.js  (59 tests, ~6s, no deps)
 ```
 
 Run the glob, not bare `node --test`: Node treats every `.js` under `test/` as a test file, so `test/helpers/harness.js` would run as a phantom empty test.
@@ -49,8 +49,9 @@ Scripts are standalone: **no imports, no modules, no bundler**. Each file ends w
 **QX loader stubs `eval()` a remote file.** `Scripts/QuantumultX/*.js` fetch `config_helper.js` from `conversun/jd_surge@main` at runtime — they carry no logic of their own beyond setting `$argument`. They previously pointed at a `W-Webber/jd_surge@feature-qx` fork, so QX panel users never received changes made here; if you see that fork URL reappear, it is a regression.
 
 **Trigger regex lives in two files.** `jd_cookie_sync.sgmodule` and `jd_cookie_sync.snippet` each hardcode
-`functionId=(getJDUserInfoUnion|queryJDUserInfo|myHomeV2|home|wareBusiness|basicConfig)`.
-Change one → change the other. (`CLAUDE.md` lists only `wareBusiness|basicConfig`; stale.)
+`^https?:\/\/api\.m\.jd\.com\/client\.action`. Change one → change the other.
+
+Do **not** put a `functionId=` allowlist back into that regex. JD moved `functionId` out of the URL query string and into the POST request body before 2026-09; the URL is now bare `/client.action?`. With a functionId allowlist the rule matched **zero** requests, and QX/Surge report no error for that — it just looks like "nothing is being captured". That silent failure is issue #6. The script now does its own filtering on `User-Agent` + `Cookie` instead. Tests `触发正则不依赖 URL 里的 functionId` and `触发正则能匹配 2026-09 抓包里的真实 URL 形态` enforce this.
 
 **All accounts share the name `JD_COOKIE`.** There is no `JD_COOKIE_2`/`_3`. Identity is the `pt_pin` parsed out of the env `value` (`extractPtPinFromEnv`). The README's multi-numbered-variable claim is stale — do not "restore" it.
 
@@ -64,7 +65,7 @@ Change one → change the other. (`CLAUDE.md` lists only `wareBusiness|basicConf
 
 **Sync order is add-then-delete, and must stay that way.** `handleExistingEnvs` adds the new `JD_COOKIE` *before* deleting stale ones. Reversing it reintroduces a window where a killed script leaves the account with zero cookies in Qinglong. Two follow-on rules: if `addEnv` fails, keep the old envs and return early; if it returns `isDuplicate`, the new value landed on some *other* env row, so skip the cleanup or the account ends up with nothing.
 
-**One sync at a time per account.** `acquireSyncLock` / `releaseSyncLock` use `jd_cookie_syncing_{ptPin}` with a `SYNC_LOCK_TTL` expiry, released in a `finally`. The persistent store has no atomic compare-and-swap, so this only narrows the race from a multi-second network round-trip to a single read+write — it is not a true mutex. The TTL exists because Surge can kill the script mid-flight; without it a crashed run would wedge the account forever. The trigger regex matches 6 `functionId`s, several of which fire concurrently at JD app launch, so this path is exercised constantly.
+**One sync at a time per account.** `acquireSyncLock` / `releaseSyncLock` use `jd_cookie_syncing_{ptPin}` with a `SYNC_LOCK_TTL` expiry, released in a `finally`. The persistent store has no atomic compare-and-swap, so this only narrows the race from a multi-second network round-trip to a single read+write — it is not a true mutex. The TTL exists because Surge can kill the script mid-flight; without it a crashed run would wedge the account forever. The trigger regex now matches every `/client.action` call (JD app launch fires many concurrently), so this path is exercised constantly.
 
 **Timeout budgets must nest.** `REQUEST_TIMEOUT` (6s, `jd_cookie_sync.js`) must stay well under the sgmodule's `timeout=20`, because a full sync is up to 4 serial round-trips. When the module value was `10`, the internal timeout could never fire — Surge killed the script first, landing it in exactly the interrupted-write window described above. Change one, re-check the other.
 
@@ -76,14 +77,16 @@ Change one → change the other. (`CLAUDE.md` lists only `wareBusiness|basicConf
 
 ## Skip conditions in the main script (do not remove)
 
-1. `User-Agent` must start with `JD4iPhone` — filters out browsers and third-party clients.
+1. `User-Agent` must match `^(?:JD4iPhone|jdapp;)/i` — filters out browsers and third-party clients. Both prefixes are real JD-app UAs seen in the 2026-09 capture: `JD4iPhone/16.0.0 CFNetwork/...` (native stack, replaces the old `JD4iPhone/167783 (iPhone;...)` form) and `jdapp;iPhone;16.0.0;;;M/5.0;...` (in-app H5 / `pro.m.jd.com`). Dropping the `jdapp;` branch loses roughly a third of the cookie-bearing requests.
 2. Guest cookies rejected: `pt_key` starting with `fake_`, or `pt_pin` equal to `guest`.
 3. Time-interval throttle, default 1800s via `ql_update_interval`; bypassed when the cookie value actually changed, or when the bypass flag is set.
 
 ## Storage keys
 
-Config: `ql_url`, `ql_client_id`, `ql_client_secret`, `ql_update_interval`, `jd_bypass_interval_check`.
+Config: `ql_url`, `ql_client_id`, `ql_client_secret`, `ql_update_interval`, `jd_bypass_interval_check`, `jd_strip_app_open`.
 Per-account cache: `jd_cookie_cache_{ptPin}`, `jd_cookie_last_update_{ptPin}`, `jd_cookie_syncing_{ptPin}` (lock).
+
+`jd_strip_app_open` is opt-in and defaults to off. Since 2026-09 JD prefixes `pt_key` with `app_open` (`app_openAAJqskN7...`). The default keeps the captured value verbatim — it is the exact credential JD's servers just accepted; stripping it is only for users whose downstream sign-in scripts only accept the classic `AAJ...` form.
 
 ## Conventions
 

@@ -12,8 +12,17 @@ const CONFIG_KEYS = {
     CLIENT_ID: 'ql_client_id',
     CLIENT_SECRET: 'ql_client_secret',
     UPDATE_INTERVAL: 'ql_update_interval',
-    BYPASS_CHECK: 'jd_bypass_interval_check'
+    BYPASS_CHECK: 'jd_bypass_interval_check',
+    STRIP_APP_OPEN: 'jd_strip_app_open'
 };
+
+// 京东 App 有两种 User-Agent 前缀：
+//   JD4iPhone —— 原生网络栈（老形态 JD4iPhone/167783 (iPhone;...)，新形态 JD4iPhone/16.0.0 CFNetwork/...）
+//   jdapp;    —— App 内 H5 / pro.m.jd.com 网页容器，2026-09 抓包里大量出现
+const JD_APP_UA_RE = /^(?:JD4iPhone|jdapp;)/i;
+
+// 京东 2026-09 起给 pt_key 加了 app_open 渠道前缀（app_openAAJqskN7...）
+const APP_OPEN_PREFIX = 'app_open';
 
 const DEFAULT_UPDATE_INTERVAL = 1800; // 默认30分钟
 const REQUEST_TIMEOUT = 6000;       // 单次请求超时，必须显著小于 sgmodule 的 timeout=20
@@ -78,7 +87,7 @@ function extractCookie(headers) {
         return { valid: false, message: 'pt_key or pt_pin not found in cookie' };
     }
 
-    const ptKey = ptKeyMatch[1];
+    let ptKey = ptKeyMatch[1];
     const ptPin = decodeURIComponent(ptPinMatch[1]);
 
     if (!ptKey || !ptPin || ptKey.length < 10) {
@@ -87,6 +96,16 @@ function extractCookie(headers) {
 
     if (ptKey.startsWith('fake_') || ptPin.toLowerCase() === 'guest') {
         return { valid: false, message: 'Guest cookie detected, skipping sync' };
+    }
+
+    // 默认保留抓到的原值——那是京东服务器刚刚接受过的完整凭证。
+    // 老签到脚本若只认 AAJ 开头的经典格式，置 jd_strip_app_open=true 去掉前缀。
+    if (ptKey.startsWith(APP_OPEN_PREFIX) && $.getval(CONFIG_KEYS.STRIP_APP_OPEN) === 'true') {
+        ptKey = ptKey.slice(APP_OPEN_PREFIX.length);
+        if (ptKey.length < 10) {
+            return { valid: false, message: 'Invalid cookie format' };
+        }
+        $.log(`🧹 已去除 pt_key 的 ${APP_OPEN_PREFIX} 前缀`);
     }
 
     return {
@@ -519,9 +538,10 @@ async function syncToQinglong(cookie, ptPin) {
     try {
         const headers = $request.headers;
 
-        // 只处理京东主App的请求
+        // 只处理京东主 App 的请求（原生网络栈 JD4iPhone / App 内 H5 jdapp;），
+        // 过滤浏览器与第三方客户端
         const userAgent = headers['User-Agent'] || headers['user-agent'] || '';
-        if (!userAgent.startsWith('JD4iPhone')) {
+        if (!JD_APP_UA_RE.test(userAgent)) {
             $.done({});
             return;
         }
